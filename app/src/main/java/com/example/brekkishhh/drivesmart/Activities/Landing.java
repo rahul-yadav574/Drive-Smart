@@ -1,6 +1,7 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -29,6 +30,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -42,7 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Landing extends AppCompatActivity implements OnMapReadyCallback {
+public class Landing extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMarkerClickListener {
 
 
     private MapFragment mainMap;
@@ -77,7 +79,9 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback {
     public void onMapReady(GoogleMap googleMap) {
 
         this.googleMap = googleMap;
+        googleMap.setOnMarkerClickListener(this);
         userLocation = tracking.fetchUserLocation();
+
 
         if (userLocation == null) {
             return;
@@ -205,5 +209,20 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+
+
+
+        LatLng markerLocation = marker.getPosition();
+
+        String extra = markerLocation.latitude+","+markerLocation.longitude;
+        Log.d(TAG,extra);
+        Intent showDescription = new Intent(Landing.this,CarRepairDescription.class);
+        showDescription.putExtra("latlng",extra);
+        startActivity(showDescription);
+        return true;
     }
 }

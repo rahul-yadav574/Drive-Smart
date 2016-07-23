@@ -2,6 +2,7 @@ package com.example.brekkishhh.drivesmart.Activities;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 
 import com.example.brekkishhh.drivesmart.R;
@@ -10,18 +11,19 @@ import com.google.android.gms.maps.model.LatLng;
 public class CarRepairDescription extends AppCompatActivity {
 
     private LatLng carRepairLocation;
+    private static final String TAG =  "Car Description";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
         setContentView(R.layout.activity_car_repair_description);
 
         String intentExtra = getIntent().getStringExtra("latlng");
         int x = intentExtra.indexOf(",");
-        double lat = Double.parseDouble(intentExtra.substring(0,x-1));
-        double lng = Double.parseDouble(intentExtra.substring(x+1,intentExtra.length()-1));
-
-        carRepairLocation = new LatLng(lat,lng);
+        carRepairLocation = new LatLng(Double.parseDouble(intentExtra.substring(0,x)),Double.parseDouble(intentExtra.substring(x+1,intentExtra.length())));
 
     }
 
