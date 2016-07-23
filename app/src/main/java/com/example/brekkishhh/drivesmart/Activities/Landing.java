@@ -1,5 +1,6 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.graphics.BitmapFactory;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.FragmentManager;
@@ -10,10 +11,16 @@ import android.util.Log;
 import com.example.brekkishhh.drivesmart.R;
 import com.example.brekkishhh.drivesmart.Utils.Tracking;
 import com.example.brekkishhh.drivesmart.Utils.UtilClass;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -60,23 +67,36 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
 
         this.googleMap = googleMap;
         LatLng userLatLng = tracking.fetchUserLocation();
-        googleMap.addMarker(new MarkerOptions().position(userLatLng).title("I am Stuck Here"));
+        googleMap.addMarker(new MarkerOptions()
+                .position(userLatLng)
+                .title("I am Stuck Here")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+        zoomToMarker(userLatLng);
 
         getNearbyCarServices(userLatLng);
     }
 
     public void getNearbyCarServices(LatLng userLatLang){
 
-        String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+userLatLang.latitude+","+userLatLang.longitude+"&radius=1000&type=car&key="+getString(R.string.place_search_api_key);
+        String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+userLatLang.latitude+","+userLatLang.longitude+"&radius=20000&type=car_repair&key="+getString(R.string.place_search_api_key);
         OkHttpClient httpClient = new OkHttpClient();
         final List<LatLng> responses = new ArrayList<>();
+
+        Log.d(TAG,placeSearchApiUrl);
 
         httpClient.newCall(new Request.Builder()
                 .url(placeSearchApiUrl)
                 .build()).enqueue(new Callback() {
             @Override
             public void onFailure(Request request, IOException e) {
-                UtilClass.toastL(Landing.this,"Unable to fetch information");
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                });
+
             }
 
             @Override
@@ -84,7 +104,6 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
                 JsonArray locationArray = null;
                 JsonParser jsonParser = new JsonParser();
                 JsonObject jsonObject = jsonParser.parse(response.body().charStream()).getAsJsonObject();
-                Log.d(TAG,"JSON IS :"+jsonObject.toString());
 
                 locationArray = jsonObject.getAsJsonArray("results");
                 for (int objects=0;objects<locationArray.size();objects++){
@@ -103,15 +122,42 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
 
             }
         });
+    }
+
+    private void updateMapWithNewCentres(List<LatLng> carServices){
+
+        //Calculating Bounds For Making Camera TO Fit for all markers
+
+        LatLngBounds.Builder boundBuilder = new LatLngBounds.Builder();
+
+
+        for (LatLng pos : carServices){
+            boundBuilder.include(pos);
+            googleMap.addMarker(new MarkerOptions()
+                    .title("I am here to help you")
+                    .position(pos)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+        }
+
+        if (carServices.size()!=0){
+            LatLngBounds bounds = boundBuilder.build();
+            CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,100,100,5);
+            googleMap.animateCamera(cameraUpdate);
+        }
+
+
 
 
 
     }
 
-    private void updateMapWithNewCentres(List<LatLng> carServices){
+    private void zoomToMarker(LatLng marker){
 
-        for (LatLng pos : carServices){
-            googleMap.addMarker(new MarkerOptions().title("I am here tO help you").position(pos));
-        }
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(marker)
+                .zoom(10)
+                .build();
+
+        googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 }
