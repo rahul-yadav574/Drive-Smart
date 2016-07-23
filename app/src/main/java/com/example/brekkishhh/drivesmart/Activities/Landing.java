@@ -1,12 +1,20 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.content.DialogInterface;
 import android.graphics.BitmapFactory;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
 import com.example.brekkishhh.drivesmart.R;
 import com.example.brekkishhh.drivesmart.Utils.Tracking;
@@ -34,13 +42,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Landing extends AppCompatActivity implements OnMapReadyCallback{
+public class Landing extends AppCompatActivity implements OnMapReadyCallback {
 
 
     private MapFragment mainMap;
     private Tracking tracking;
     private static final String TAG = "Landing Activity";
     private GoogleMap googleMap;
+
+    private int radiusOfSearch = 20;     //this radius is in kms.
+    private LatLng userLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,34 +66,38 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
 
     }
 
-    private void addMapToLayout(){
+    private void addMapToLayout() {
 
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
-        transaction.add(R.id.mapContainer,mainMap).commit();
+        transaction.add(R.id.mapContainer, mainMap).commit();
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
         this.googleMap = googleMap;
-        LatLng userLatLng = tracking.fetchUserLocation();
+        userLocation = tracking.fetchUserLocation();
+
+        if (userLocation == null) {
+            return;
+        }
         googleMap.addMarker(new MarkerOptions()
-                .position(userLatLng)
+                .position(userLocation)
                 .title("I am Stuck Here")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-        zoomToMarker(userLatLng);
+        zoomToMarker(userLocation);
 
-        getNearbyCarServices(userLatLng);
+        getNearbyCarServices(userLocation);
     }
 
-    public void getNearbyCarServices(LatLng userLatLang){
+    public void getNearbyCarServices(LatLng userLatLang) {
 
-        String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+userLatLang.latitude+","+userLatLang.longitude+"&radius=20000&type=car_repair&key="+getString(R.string.place_search_api_key);
+        String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + userLatLang.latitude + "," + userLatLang.longitude + "&radius=" + radiusOfSearch + "000&type=car_repair&key=" + getString(R.string.place_search_api_key);
         OkHttpClient httpClient = new OkHttpClient();
         final List<LatLng> responses = new ArrayList<>();
 
-        Log.d(TAG,placeSearchApiUrl);
+        //Log.d(TAG,placeSearchApiUrl);
 
         httpClient.newCall(new Request.Builder()
                 .url(placeSearchApiUrl)
@@ -93,7 +108,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-
+                        UtilClass.toastL(Landing.this, "Unable to get nearby car repair services");
                     }
                 });
 
@@ -106,12 +121,12 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
                 JsonObject jsonObject = jsonParser.parse(response.body().charStream()).getAsJsonObject();
 
                 locationArray = jsonObject.getAsJsonArray("results");
-                for (int objects=0;objects<locationArray.size();objects++){
+                for (int objects = 0; objects < locationArray.size(); objects++) {
                     JsonObject geometry = locationArray.get(objects).getAsJsonObject().getAsJsonObject("geometry");
                     JsonObject location = geometry.getAsJsonObject("location");
                     double latitude = location.get("lat").getAsDouble();
                     double longitude = location.get("lng").getAsDouble();
-                    responses.add(new LatLng(latitude,longitude));
+                    responses.add(new LatLng(latitude, longitude));
                 }
                 runOnUiThread(new Runnable() {
                     @Override
@@ -124,14 +139,12 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
         });
     }
 
-    private void updateMapWithNewCentres(List<LatLng> carServices){
+    private void updateMapWithNewCentres(List<LatLng> carServices) {
 
         //Calculating Bounds For Making Camera TO Fit for all markers
-
         LatLngBounds.Builder boundBuilder = new LatLngBounds.Builder();
 
-
-        for (LatLng pos : carServices){
+        for (LatLng pos : carServices) {
             boundBuilder.include(pos);
             googleMap.addMarker(new MarkerOptions()
                     .title("I am here to help you")
@@ -139,19 +152,14 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
         }
 
-        if (carServices.size()!=0){
+        if (carServices.size() != 0) {
             LatLngBounds bounds = boundBuilder.build();
-            CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,100,100,5);
+            CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100, 100, 5);
             googleMap.animateCamera(cameraUpdate);
         }
-
-
-
-
-
     }
 
-    private void zoomToMarker(LatLng marker){
+    private void zoomToMarker(LatLng marker) {
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(marker)
@@ -159,5 +167,43 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
                 .build();
 
         googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        getMenuInflater().inflate(R.menu.menu_landing, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if (item.getItemId() == R.id.changeRadius) {
+
+            final EditText editText = new EditText(Landing.this);
+            editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+            AlertDialog dialog = new AlertDialog.Builder(Landing.this)
+                    .setMessage("Input Radius For The Search in kms.")
+                    .setPositiveButton("Search", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (editText.getText().toString().length() == 0 || editText.getText().toString().equals("")) {
+                                return;
+                            }
+
+                            radiusOfSearch = Integer.parseInt(editText.getText().toString());
+                            getNearbyCarServices(userLocation);
+                        }
+                    }).create();
+
+            dialog.setView(editText);
+
+            dialog.show();
+
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
