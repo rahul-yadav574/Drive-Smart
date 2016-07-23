@@ -3,10 +3,15 @@ package com.example.brekkishhh.drivesmart.Activities;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.os.Vibrator;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
@@ -44,7 +49,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Landing extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMarkerClickListener {
+public class Landing extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMarkerClickListener,SensorEventListener {
 
 
     private MapFragment mainMap;
@@ -54,6 +59,10 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
     private int radiusOfSearch = 20;     //this radius is in kms.
     private LatLng userLocation;
+    private SensorManager sensorManager;
+    private float acceleration;
+    private float accelerationCurrent;
+    private float accelerationLast;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +73,15 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         mainMap.getMapAsync(this);         //registering onMapReadyCallback
         this.addMapToLayout();                   //this method adds the map to the layout
         tracking = new Tracking(Landing.this);
+
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+
+        sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
+
+
+        acceleration= 0.00f;
+        accelerationCurrent = SensorManager.GRAVITY_EARTH;
+        accelerationLast = SensorManager.GRAVITY_EARTH;
 
 
     }
@@ -224,5 +242,45 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         showDescription.putExtra("latlng",extra);
         startActivity(showDescription);
         return true;
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
+        accelerationLast = accelerationCurrent;
+        accelerationCurrent = (float) Math.sqrt((double) (x * x + y * y + z * z));
+        float delta = accelerationCurrent - accelerationLast;
+        acceleration = acceleration * 0.9f + delta; // perform low-cut filter
+
+        if (acceleration > 8) {
+
+            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            vibrator.vibrate(1000);
+
+            //TODO: Perform The Sms Sending Task Here
+
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
     }
 }

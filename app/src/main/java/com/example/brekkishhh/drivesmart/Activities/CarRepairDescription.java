@@ -13,6 +13,7 @@ public class CarRepairDescription extends AppCompatActivity {
     private LatLng carRepairLocation;
     private static final String TAG =  "Car Description";
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
