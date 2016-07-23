@@ -5,20 +5,35 @@ import android.os.Bundle;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.example.brekkishhh.drivesmart.R;
 import com.example.brekkishhh.drivesmart.Utils.Tracking;
+import com.example.brekkishhh.drivesmart.Utils.UtilClass;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Landing extends AppCompatActivity implements OnMapReadyCallback{
 
 
     private MapFragment mainMap;
     private Tracking tracking;
+    private static final String TAG = "Landing Activity";
+    private GoogleMap googleMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,10 +57,61 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback{
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-       // googleMap.addMarker(new MarkerOptions().position(new LatLng(28.1881,76.6115)).title("Hey Map Is Working"));
+
+        this.googleMap = googleMap;
         LatLng userLatLng = tracking.fetchUserLocation();
-        googleMap.addMarker(new MarkerOptions().position(userLatLng).title("Hey I am Getting User's Position"));
+        googleMap.addMarker(new MarkerOptions().position(userLatLng).title("I am Stuck Here"));
+
+        getNearbyCarServices(userLatLng);
+    }
+
+    public void getNearbyCarServices(LatLng userLatLang){
+
+        String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+userLatLang.latitude+","+userLatLang.longitude+"&radius=1000&type=car&key="+getString(R.string.place_search_api_key);
+        OkHttpClient httpClient = new OkHttpClient();
+        final List<LatLng> responses = new ArrayList<>();
+
+        httpClient.newCall(new Request.Builder()
+                .url(placeSearchApiUrl)
+                .build()).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                UtilClass.toastL(Landing.this,"Unable to fetch information");
+            }
+
+            @Override
+            public void onResponse(Response response) throws IOException {
+                JsonArray locationArray = null;
+                JsonParser jsonParser = new JsonParser();
+                JsonObject jsonObject = jsonParser.parse(response.body().charStream()).getAsJsonObject();
+                Log.d(TAG,"JSON IS :"+jsonObject.toString());
+
+                locationArray = jsonObject.getAsJsonArray("results");
+                for (int objects=0;objects<locationArray.size();objects++){
+                    JsonObject geometry = locationArray.get(objects).getAsJsonObject().getAsJsonObject("geometry");
+                    JsonObject location = geometry.getAsJsonObject("location");
+                    double latitude = location.get("lat").getAsDouble();
+                    double longitude = location.get("lng").getAsDouble();
+                    responses.add(new LatLng(latitude,longitude));
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateMapWithNewCentres(responses);
+                    }
+                });
+
+            }
+        });
 
 
+
+    }
+
+    private void updateMapWithNewCentres(List<LatLng> carServices){
+
+        for (LatLng pos : carServices){
+            googleMap.addMarker(new MarkerOptions().title("I am here tO help you").position(pos));
+        }
     }
 }

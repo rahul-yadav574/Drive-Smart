@@ -8,11 +8,30 @@ import android.location.LocationManager;
 import android.nfc.Tag;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
+import android.util.JsonReader;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.example.brekkishhh.drivesmart.R;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.squareup.okhttp.Call;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Brekkishhh on 23-07-2016.
@@ -22,6 +41,7 @@ public class Tracking {
     private Context context;
     private LocationManager locationManager;
     private static final String TAG = "Tracking";
+
 
     public Tracking(Context context) {
         this.context =context;
@@ -96,8 +116,6 @@ public class Tracking {
                     }
                 })
                 .create();
-
-
     }
 
 
