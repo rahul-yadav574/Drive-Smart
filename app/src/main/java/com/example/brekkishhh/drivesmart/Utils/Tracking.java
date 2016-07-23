@@ -39,7 +39,7 @@ public class Tracking {
             if (isGpsAvailable()){
                 try {
                     gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    Log.d(TAG,gpsLocation.toString());
+//                    Log.d(TAG,gpsLocation.toString());
 
                 }catch (SecurityException ex){
                     Log.e(TAG,"Error : "+ ex.getMessage());
@@ -49,7 +49,7 @@ public class Tracking {
             if (isNetworkAvailable()){
                 try {
                     networkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                    Log.d(TAG,networkLocation.toString());
+                  //  Log.d(TAG,networkLocation.toString());
 
                 }catch (SecurityException ex){
                     Log.e(TAG,"Error : "+ ex.getMessage());

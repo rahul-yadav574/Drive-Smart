@@ -1,5 +1,6 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
@@ -14,6 +15,7 @@ import android.app.FragmentTransaction;
 import android.os.Vibrator;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.SmsManager;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
@@ -63,6 +65,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     private float acceleration;
     private float accelerationCurrent;
     private float accelerationLast;
+    private final static int RC_SEND_MESSAGE = 574;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -265,7 +268,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
             Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             vibrator.vibrate(1000);
 
-            //TODO: Perform The Sms Sending Task Here
+            sendMessageToServers("Hey This is Message");
 
         }
     }
@@ -282,5 +285,12 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         super.onResume();
 
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    private void sendMessageToServers(String userAddress){
+
+        PendingIntent smsPendingIntent = PendingIntent.getActivity(Landing.this,RC_SEND_MESSAGE,new Intent(Landing.this,Landing.class),0);
+        SmsManager smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage("Phone Number Here","",userAddress,smsPendingIntent,null);
     }
 }
