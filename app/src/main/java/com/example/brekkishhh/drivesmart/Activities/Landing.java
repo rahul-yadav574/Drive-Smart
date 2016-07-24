@@ -6,20 +6,28 @@ import android.app.FragmentTransaction;
 import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.support.v4.view.GravityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.SmsManager;
 import android.text.InputType;
 import android.util.Log;
+import android.util.Size;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.example.brekkishhh.drivesmart.Db.DbHelper;
 import com.example.brekkishhh.drivesmart.R;
@@ -77,22 +85,16 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         this.addMapToLayout();                   //this method adds the map to the layout
         tracking = new Tracking(Landing.this);
         dbHelper = new DbHelper(Landing.this);
-        Log.d(TAG,"The Database Size is : " + dbHelper.retrieveInfoFromDb().size());
+
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
         sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
-
-
         acceleration= 0.00f;
         accelerationCurrent = SensorManager.GRAVITY_EARTH;
         accelerationLast = SensorManager.GRAVITY_EARTH;
-
-
     }
 
     private void addMapToLayout() {
-
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
         transaction.add(R.id.mapContainer, mainMap).commit();
@@ -104,7 +106,6 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         this.googleMap = googleMap;
         googleMap.setOnMarkerClickListener(this);
         userLocation = tracking.fetchUserLocation();
-
 
         if (userLocation == null) {
             return;
@@ -238,20 +239,17 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
                     .setCancelable(false)
                     .create();
 
-            dialog.setMessage(getString(R.string.add_numbers));
-            final EditText contact = new EditText(Landing.this);
-            final EditText phone = new EditText(Landing.this);
+            final LinearLayout layout = getUserInputLayout();
 
-
-            contact.setInputType(InputType.TYPE_CLASS_TEXT);
-            phone.setInputType(InputType.TYPE_CLASS_NUMBER);
-            dialog.setView(contact,10,0,10,0);
-            dialog.setView(phone,10,0,10,0);
+           // dialog.setMessage(getString(R.string.add_numbers));
+            dialog.setView(layout,30,20,30,0);
 
             dialog.setButton(Dialog.BUTTON_POSITIVE, "ADD CONTACT", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
 
+                    EditText phone = (EditText) layout.getChildAt(2);
+                    EditText contact = (EditText) layout.getChildAt(1);
                     if (contact.getText().toString().length()>0 && phone.getText().toString().length() == Constants.MAX_LENGTH_PHONE){
                         dbHelper.addEntryToDb(contact.getText().toString(),phone.getText().toString());
                         dialog.cancel();
@@ -351,5 +349,32 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         if (requestCode == RC_GET_PERMISSION && resultCode == RESULT_OK ){
             UtilClass.toastL(Landing.this,"Permission Granted");
         }
+    }
+
+    private LinearLayout getUserInputLayout(){
+
+        LinearLayout layout = new LinearLayout(Landing.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        EditText contact = new EditText(Landing.this);
+        EditText phone = new EditText(Landing.this);
+        TextView title = new TextView(Landing.this);
+
+        title.setText(getString(R.string.add_numbers));
+        title.setTextColor(Color.BLACK);
+        title.setGravity(Gravity.CENTER);
+        title.setTextSize(18);
+
+        contact.setHint("Enter Contact Name");
+        phone.setHint("Enter Contact Number");
+
+
+        contact.setInputType(InputType.TYPE_CLASS_TEXT);
+        phone.setInputType(InputType.TYPE_CLASS_NUMBER);
+        layout.addView(title,0,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        layout.addView(contact , 1,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        layout.addView(phone,2, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        return layout;
     }
 }
