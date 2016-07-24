@@ -13,24 +13,25 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Vibrator;
-import android.support.v4.view.GravityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.SmsManager;
 import android.text.InputType;
 import android.util.Log;
-import android.util.Size;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.example.brekkishhh.drivesmart.Db.DbHelper;
 import com.example.brekkishhh.drivesmart.R;
+import com.example.brekkishhh.drivesmart.Services.MessageService;
 import com.example.brekkishhh.drivesmart.Utils.Constants;
 import com.example.brekkishhh.drivesmart.Utils.Tracking;
 import com.example.brekkishhh.drivesmart.Utils.UtilClass;
@@ -55,7 +56,10 @@ import com.squareup.okhttp.Response;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Landing extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMarkerClickListener,SensorEventListener {
 
@@ -265,6 +269,40 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
             return true;
         }
+
+        else if (item.getItemId()==R.id.showEmergencyNumbers){
+
+            AlertDialog.Builder dialog = new AlertDialog.Builder(Landing.this);
+
+
+            dialog.setCancelable(false);
+
+            dialog.setAdapter(new ArrayAdapter<String>(Landing.this,
+                    android.R.layout.simple_list_item_1, dbHelper.retrieveInfoFromDb()), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    UtilClass.toastS(Landing.this,"");
+                }
+            });
+
+            TextView title = new TextView(Landing.this);
+            title.setText(getString(R.string.all_emergency_numbers));
+            title.setTextColor(Color.BLACK);
+            title.setPadding(0,30,0,0);
+            title.setGravity(Gravity.CENTER);
+            title.setTextSize(20);
+            dialog.setCustomTitle(title);
+            dialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+
+
+            dialog.create().show();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -274,7 +312,6 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         LatLng markerLocation = marker.getPosition();
 
         String extra = markerLocation.latitude+","+markerLocation.longitude;
-        Log.d(TAG,extra);
         Intent showDescription = new Intent(Landing.this,CarRepairDescription.class);
         showDescription.putExtra("latlng",extra);
         startActivity(showDescription);
@@ -326,12 +363,17 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     }
     private void sendMessageToServers(String userAddress){
 
-        Intent intent = new Intent(this,Landing.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        List<DbHelper.User> numberList = dbHelper.retrieveListFromDb();
 
-        PendingIntent smsPendingIntent = PendingIntent.getActivity(Landing.this,RC_SEND_MESSAGE,intent,0);
-        SmsManager smsManager = SmsManager.getDefault();
-        smsManager.sendTextMessage("Phone Number Here","",userAddress,smsPendingIntent,null);
+        for (DbHelper.User user : numberList){
+            Intent intent = new Intent(this, MessageService.class);
+            intent.putExtra("contactName",user.getName());
+
+            PendingIntent smsPendingIntent = PendingIntent.getActivity(Landing.this,RC_SEND_MESSAGE,intent,0);
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage("+91"+user.getPhone(),"",userAddress,smsPendingIntent,null);
+        }
+
     }
 
     @Override
@@ -362,8 +404,10 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
         title.setText(getString(R.string.add_numbers));
         title.setTextColor(Color.BLACK);
+        title.setPadding(0,20,0,20);
         title.setGravity(Gravity.CENTER);
         title.setTextSize(18);
+
 
         contact.setHint("Enter Contact Name");
         phone.setHint("Enter Contact Number");
@@ -377,4 +421,5 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
         return layout;
     }
+
 }

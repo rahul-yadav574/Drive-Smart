@@ -11,5 +11,11 @@
         android:icon="@android:drawable/ic_menu_edit"
         app:showAsAction="ifRoom"
         android:title="@string/settings"/>
+    <item android:id="@+id/showEmergencyNumbers"
+        android:icon="@android:drawable/ic_input_get"
+        app:showAsAction="ifRoom"
+        android:title="@string/emergency_numbers"/>
+
+
 
 </menu>

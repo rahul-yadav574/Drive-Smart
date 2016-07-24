@@ -7,6 +7,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.example.brekkishhh.drivesmart.R;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,16 +22,22 @@ public class DbHelper extends SQLiteOpenHelper {
     public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "EmergencyContact.db";
     private static final String TAG  = "DbHelper";
+    private Context context;
 
     public DbHelper(Context context){
         super(context,DATABASE_NAME,null,DATABASE_VERSION);
+        this.context = context;
+
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-
-
-            db.execSQL(DbUtils.CREATE_TABLE);
+        db.execSQL(DbUtils.CREATE_TABLE);
+        ContentValues values = new ContentValues();
+        values.put(Schema.DbEntry.COLUMN_PERSON_NAME,context.getString(R.string.admin_name));
+        values.put(Schema.DbEntry.COLUMN_PERSON_CONTACT,context.getString(R.string.admin_phone));
+        db.insert(Schema.DbEntry.TABLE_NAME,null,values);
+       // db.insert(context.getString(R.string.admin_name),context.getString(R.string.admin_phone));
 
     }
 
@@ -46,7 +55,7 @@ public class DbHelper extends SQLiteOpenHelper {
         db.insert(Schema.DbEntry.TABLE_NAME,null,values);
     }
 
-    public Map<String,String> retrieveInfoFromDb(){
+    public List<String> retrieveInfoFromDb(){
 
         SQLiteDatabase db = getReadableDatabase();
         String[] projection = {Schema.DbEntry.COLUMN_PERSON_NAME, Schema.DbEntry.COLUMN_PERSON_CONTACT};
@@ -59,13 +68,14 @@ public class DbHelper extends SQLiteOpenHelper {
 
         int totalRows = readCursor.getCount();
 
-        Map<String,String> results = new HashMap<>();
+        List<String> results = new ArrayList<>();
 
         while (totalRows>0){
             totalRows--;
             String contactName = readCursor.getString(readCursor.getColumnIndexOrThrow(Schema.DbEntry.COLUMN_PERSON_NAME));
             String contactNumber = readCursor.getString(readCursor.getColumnIndexOrThrow(Schema.DbEntry.COLUMN_PERSON_CONTACT));
-            results.put(contactNumber,contactName);
+            String converted = contactName + "\n" + contactNumber;
+            results.add(converted);
             readCursor.moveToNext();
         }
 
@@ -73,5 +83,52 @@ public class DbHelper extends SQLiteOpenHelper {
 
         return results;
 
+    }
+
+    public List<User> retrieveListFromDb(){
+
+        SQLiteDatabase db = getReadableDatabase();
+        String[] projection = {Schema.DbEntry.COLUMN_PERSON_NAME, Schema.DbEntry.COLUMN_PERSON_CONTACT};
+
+        Cursor readCursor = db.query(Schema.DbEntry.TABLE_NAME,
+                projection,null,null,null,null,null);
+
+        readCursor.moveToFirst();        //now the cursor points to the first row
+
+
+        int totalRows = readCursor.getCount();
+
+        List<User> results = new ArrayList<>();
+
+        while (totalRows>0){
+            totalRows--;
+            String contactName = readCursor.getString(readCursor.getColumnIndexOrThrow(Schema.DbEntry.COLUMN_PERSON_NAME));
+            String contactNumber = readCursor.getString(readCursor.getColumnIndexOrThrow(Schema.DbEntry.COLUMN_PERSON_CONTACT));
+            results.add(new User(contactName,contactNumber));
+            readCursor.moveToNext();
+        }
+
+        readCursor.close();
+
+        return results;
+
+    }
+
+    public class User {
+        private String phone;
+        private String name;
+
+        public User(String name, String phone) {
+            this.name = name;
+            this.phone = phone;
+        }
+
+        public String getPhone() {
+            return this.phone;
+        }
+
+        public String getName() {
+            return this.name;
+        }
     }
 }
