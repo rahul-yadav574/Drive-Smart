@@ -1,17 +1,15 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.os.Vibrator;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -20,8 +18,6 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 
 import com.example.brekkishhh.drivesmart.R;
@@ -32,7 +28,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -66,6 +61,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     private float accelerationCurrent;
     private float accelerationLast;
     private final static int RC_SEND_MESSAGE = 574;
+    public final static int RC_GET_PERMISSION = 10005;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -235,8 +231,6 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     @Override
     public boolean onMarkerClick(Marker marker) {
 
-
-
         LatLng markerLocation = marker.getPosition();
 
         String extra = markerLocation.latitude+","+markerLocation.longitude;
@@ -268,7 +262,11 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
             Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             vibrator.vibrate(1000);
 
-            sendMessageToServers("Hey This is Message");
+            try{
+                sendMessageToServers("I am lost here Please Help me : " + userLocation.latitude + " " + userLocation.longitude);
+            }catch (NullPointerException ex){
+                Log.e(TAG,ex.getMessage());
+            }
 
         }
     }
@@ -286,11 +284,30 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
     }
-
     private void sendMessageToServers(String userAddress){
 
-        PendingIntent smsPendingIntent = PendingIntent.getActivity(Landing.this,RC_SEND_MESSAGE,new Intent(Landing.this,Landing.class),0);
+        Intent intent = new Intent(this,Landing.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        PendingIntent smsPendingIntent = PendingIntent.getActivity(Landing.this,RC_SEND_MESSAGE,intent,0);
         SmsManager smsManager = SmsManager.getDefault();
         smsManager.sendTextMessage("Phone Number Here","",userAddress,smsPendingIntent,null);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_GET_PERMISSION && resultCode == RESULT_OK ){
+            UtilClass.toastL(Landing.this,"Permission Granted");
+        }
     }
 }
