@@ -1,5 +1,6 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.app.Dialog;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.app.PendingIntent;
@@ -20,7 +21,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
 
+import com.example.brekkishhh.drivesmart.Db.DbHelper;
 import com.example.brekkishhh.drivesmart.R;
+import com.example.brekkishhh.drivesmart.Utils.Constants;
 import com.example.brekkishhh.drivesmart.Utils.Tracking;
 import com.example.brekkishhh.drivesmart.Utils.UtilClass;
 import com.google.android.gms.maps.CameraUpdate;
@@ -62,6 +65,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     private float accelerationLast;
     private final static int RC_SEND_MESSAGE = 574;
     public final static int RC_GET_PERMISSION = 10005;
+    private DbHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +76,8 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         mainMap.getMapAsync(this);         //registering onMapReadyCallback
         this.addMapToLayout();                   //this method adds the map to the layout
         tracking = new Tracking(Landing.this);
+        dbHelper = new DbHelper(Landing.this);
+        Log.d(TAG,"The Database Size is : " + dbHelper.retrieveInfoFromDb().size());
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
@@ -220,6 +226,42 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
                     }).create();
 
             dialog.setView(editText);
+
+            dialog.show();
+
+            return true;
+        }
+
+        else if (item.getItemId() == R.id.settings){
+
+            AlertDialog dialog = new AlertDialog.Builder(Landing.this)
+                    .setCancelable(false)
+                    .create();
+
+            dialog.setMessage(getString(R.string.add_numbers));
+            final EditText contact = new EditText(Landing.this);
+            final EditText phone = new EditText(Landing.this);
+
+
+            contact.setInputType(InputType.TYPE_CLASS_TEXT);
+            phone.setInputType(InputType.TYPE_CLASS_NUMBER);
+            dialog.setView(contact,10,0,10,0);
+            dialog.setView(phone,10,0,10,0);
+
+            dialog.setButton(Dialog.BUTTON_POSITIVE, "ADD CONTACT", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    if (contact.getText().toString().length()>0 && phone.getText().toString().length() == Constants.MAX_LENGTH_PHONE){
+                        dbHelper.addEntryToDb(contact.getText().toString(),phone.getText().toString());
+                        dialog.cancel();
+                        return;
+                    }
+
+                    UtilClass.toastS(Landing.this,"Enter Valid Details");
+                }
+            });
+
 
             dialog.show();
 
