@@ -1,11 +1,13 @@
 package com.example.brekkishhh.drivesmart.Activities;
 
+import android.Manifest;
 import android.app.Dialog;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,6 +15,9 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.SmsManager;
@@ -21,14 +26,11 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
-
 import com.example.brekkishhh.drivesmart.Db.DbHelper;
 import com.example.brekkishhh.drivesmart.R;
 import com.example.brekkishhh.drivesmart.Services.MessageService;
@@ -53,22 +55,16 @@ import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class Landing extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMarkerClickListener,SensorEventListener {
-
 
     private MapFragment mainMap;
     private Tracking tracking;
     private static final String TAG = "Landing Activity";
     private GoogleMap googleMap;
-
     private int radiusOfSearch = 20;     //this radius is in kms.
     private LatLng userLocation;
     private SensorManager sensorManager;
@@ -90,6 +86,13 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         tracking = new Tracking(Landing.this);
         dbHelper = new DbHelper(Landing.this);
 
+        if (ContextCompat.checkSelfPermission(Landing.this, Manifest.permission.SEND_SMS ) != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(Landing.this, Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(Landing.this, Manifest.permission.ACCESS_FINE_LOCATION ) != PackageManager.PERMISSION_GRANTED){
+            Log.e(TAG,"Permission Not Granted For Sending Sms");
+
+            ActivityCompat.requestPermissions(Landing.this,new String[]{Manifest.permission.SEND_SMS,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},RC_GET_PERMISSION);
+        }
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
@@ -126,10 +129,9 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
     public void getNearbyCarServices(LatLng userLatLang) {
 
         String placeSearchApiUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + userLatLang.latitude + "," + userLatLang.longitude + "&radius=" + radiusOfSearch + "000&type=car_repair&key=" + getString(R.string.place_search_api_key);
+
         OkHttpClient httpClient = new OkHttpClient();
         final List<LatLng> responses = new ArrayList<>();
-
-        //Log.d(TAG,placeSearchApiUrl);
 
         httpClient.newCall(new Request.Builder()
                 .url(placeSearchApiUrl)
@@ -388,9 +390,7 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
 
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == RC_GET_PERMISSION && resultCode == RESULT_OK ){
-            UtilClass.toastL(Landing.this,"Permission Granted");
-        }
+
     }
 
     private LinearLayout getUserInputLayout(){
@@ -422,4 +422,17 @@ public class Landing extends AppCompatActivity implements OnMapReadyCallback,Goo
         return layout;
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == RC_GET_PERMISSION && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
+            UtilClass.toastS(Landing.this,"Permission Granted");
+        }
+
+        else {
+            UtilClass.toastL(Landing.this,"We need permissions to do the further task");
+            this.finish();
+        }
+    }
 }
